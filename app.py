@@ -73,7 +73,8 @@ classifier = pipeline('text-classification', model='tinybert-sentiment-analysis'
 if predict:
     with st.spinner("Predicting..."):
         st.write("Working")
-        # output = classifier(text)
+        output = classifier(text)
+        st.write(output)
         # # st.json(output)
         # label = output[0]['label']
         # score = output[0]['score']
