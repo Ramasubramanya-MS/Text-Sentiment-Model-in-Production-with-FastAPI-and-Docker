@@ -14,11 +14,11 @@ import random
 import boto3
 import json
 bucket_name = "mlops-29-12-24"
-
+s3 = boto3.client('s3')
 local_path = 'tinybert-sentiment-analysis'
 s3_prefix = 'ml-models/tinybert-sentiment-analysis/'
 
-apikey = {{ secrets.API_KEY }}  # click to set to your apikey
+apikey = "AIzaSyCb0l_aqa49taTTtJURcEWWM5j9xErkxI8"  # click to set to your apikey
 lmt = 8
 ckey = "my_test_app"  # set the client_key for the integration and use the same value for all API calls
 
@@ -33,18 +33,27 @@ def fetch_gif(search_term):
             return random.choice(gifs["results"])["media_formats"]["gif"]["url"]
     return None
 
-s3 = boto3.client('s3')
+
 def download_dir(local_path, s3_prefix):
+    # Ensure the local directory exists
     os.makedirs(local_path, exist_ok=True)
+
+    # Use a paginator to handle large folders
     paginator = s3.get_paginator('list_objects_v2')
+
     for result in paginator.paginate(Bucket=bucket_name, Prefix=s3_prefix):
         if 'Contents' in result:
-            for key in result['Contents']:
-                s3_key = key['Key']
+            for obj in result['Contents']:
+                s3_key = obj['Key']
 
+                # Compute the local file path
                 local_file = os.path.join(local_path, os.path.relpath(s3_key, s3_prefix))
-                # os.makedirs(os.path.dirname(local_file), exist_ok=True)
 
+                # Ensure the directory for the local file exists
+                os.makedirs(os.path.dirname(local_file), exist_ok=True)
+
+                # Download the file from S3
+                print(f"Downloading {s3_key} to {local_file}")
                 s3.download_file(bucket_name, s3_key, local_file)
 
 
