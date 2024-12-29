@@ -18,7 +18,7 @@ bucket_name = "mlops-29-12-24"
 local_path = 'tinybert-sentiment-analysis'
 s3_prefix = 'ml-models/tinybert-sentiment-analysis/'
 
-apikey = {{ secrets.API_KEY }}  # click to set to your apikey
+apikey = os.getenv("API_KEY") # click to set to your apikey
 lmt = 8
 ckey = "my_test_app"  # set the client_key for the integration and use the same value for all API calls
 
