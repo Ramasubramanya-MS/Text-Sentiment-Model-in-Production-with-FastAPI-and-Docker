@@ -76,8 +76,10 @@ if predict:
         output = classifier(text)
         st.write(output)
         # # st.json(output)
-        # label = output[0]['label']
-        # score = output[0]['score']
+        label = output[0]['label']
+        score = output[0]['score']
+        st.write(label)
+        st.write(score)
         # # Fetch a GIF based on sentiment
         # if label == "positive":
         #     gif_url = fetch_gif("happy positive anime")
