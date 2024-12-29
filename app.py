@@ -71,22 +71,22 @@ predict = st.button("Predict")
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 classifier = pipeline('text-classification', model='tinybert-sentiment-analysis', device=device)
 if predict:
-    
     with st.spinner("Predicting..."):
-        output = classifier(text)
-        # st.json(output)
-        label = output[0]['label']
-        score = output[0]['score']
-        # Fetch a GIF based on sentiment
-        if label == "positive":
-            gif_url = fetch_gif("happy positive anime")
-            if gif_url:
-                st.subheader(f"Label: {label}")
-                st.subheader(f"Score: {score}")
-                st.image(gif_url, caption="Positive vibes in a GIF!")
-        elif label == "negative":
-            gif_url = fetch_gif("sad anime")
-            if gif_url:
-                st.subheader(f"Label: {label}")
-                st.subheader(f"Score: {score}")
-                st.image(gif_url, caption="Negative vibes in a GIF!")
+        st.write("Working")
+        # output = classifier(text)
+        # # st.json(output)
+        # label = output[0]['label']
+        # score = output[0]['score']
+        # # Fetch a GIF based on sentiment
+        # if label == "positive":
+        #     gif_url = fetch_gif("happy positive anime")
+        #     if gif_url:
+        #         st.subheader(f"Label: {label}")
+        #         st.subheader(f"Score: {score}")
+        #         st.image(gif_url, caption="Positive vibes in a GIF!")
+        # elif label == "negative":
+        #     gif_url = fetch_gif("sad anime")
+        #     if gif_url:
+        #         st.subheader(f"Label: {label}")
+        #         st.subheader(f"Score: {score}")
+        #         st.image(gif_url, caption="Negative vibes in a GIF!")
