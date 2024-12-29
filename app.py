@@ -18,7 +18,7 @@ s3 = boto3.client('s3')
 local_path = 'tinybert-sentiment-analysis'
 s3_prefix = 'ml-models/tinybert-sentiment-analysis/'
 
-apikey = "AIzaSyCb0l_aqa49taTTtJURcEWWM5j9xErkxI8"  # click to set to your apikey
+apikey = os.getenv("API_KEY") # click to set to your apikey
 lmt = 8
 ckey = "my_test_app"  # set the client_key for the integration and use the same value for all API calls
 
