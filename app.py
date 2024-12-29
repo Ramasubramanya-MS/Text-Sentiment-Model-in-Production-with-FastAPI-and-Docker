@@ -74,22 +74,19 @@ if predict:
     with st.spinner("Predicting..."):
         st.write("Working")
         output = classifier(text)
-        st.write(output)
-        # # st.json(output)
         label = output[0]['label']
         score = output[0]['score']
-        st.write(label)
-        st.write(score)
-        # # Fetch a GIF based on sentiment
-        # if label == "positive":
-        #     gif_url = fetch_gif("happy positive anime")
-        #     if gif_url:
-        #         st.subheader(f"Label: {label}")
-        #         st.subheader(f"Score: {score}")
-        #         st.image(gif_url, caption="Positive vibes in a GIF!")
-        # elif label == "negative":
-        #     gif_url = fetch_gif("sad anime")
-        #     if gif_url:
-        #         st.subheader(f"Label: {label}")
-        #         st.subheader(f"Score: {score}")
-        #         st.image(gif_url, caption="Negative vibes in a GIF!")
+        # Fetch a GIF based on sentiment
+        if label == "positive":
+            gif_url = fetch_gif("happy positive anime")
+            st.subheader(f"Label: {label}")
+            st.subheader(f"Score: {score}")
+            if gif_url:
+
+                st.image(gif_url, caption="Positive vibes in a GIF!")
+        elif label == "negative":
+            st.subheader(f"Label: {label}")
+            st.subheader(f"Score: {score}")
+            gif_url = fetch_gif("sad anime")
+            if gif_url:
+                st.image(gif_url, caption="Negative vibes in a GIF!")
