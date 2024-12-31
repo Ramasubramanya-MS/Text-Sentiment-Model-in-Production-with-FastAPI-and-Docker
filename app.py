@@ -1,92 +1,105 @@
-## ML Model Deployment at Streamlit Server
-# Full Streamlit Code Repository: https://github.com/laxmimerit/streamlit-tutorials
-
-# streamlit run 2-app.py
-
-import streamlit as st
-import os
+from scripts.data_models import NLPDataInput, NLPDataOutput, ImageDataInput, ImageDataOutput
+from fastapi import FastAPI
+from fastapi import Request
+from scripts import s3
 import torch
 from transformers import pipeline
-import requests
-from PIL import Image
-from io import BytesIO
-import random
-import boto3
-import json
-bucket_name = "mlops-29-12-24"
-s3 = boto3.client('s3')
-local_path = 'tinybert-sentiment-analysis'
-s3_prefix = 'ml-models/tinybert-sentiment-analysis/'
-
-apikey = os.getenv("API_KEY") # click to set to your apikey
-lmt = 8
-ckey = "my_test_app"  # set the client_key for the integration and use the same value for all API calls
-
-def fetch_gif(search_term):
-    """Fetch a random GIF URL from Tenor API based on the search term."""
-    url = f"https://tenor.googleapis.com/v2/search?q={search_term}&key={apikey}&client_key={ckey}&limit={lmt}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        gifs = json.loads(response.content)
-        if gifs.get("results"):
-            # Return a random GIF URL from the results
-            return random.choice(gifs["results"])["media_formats"]["gif"]["url"]
-    return None
-
-
-def download_dir(local_path, s3_prefix):
-    # Ensure the local directory exists
-    os.makedirs(local_path, exist_ok=True)
-
-    # Use a paginator to handle large folders
-    paginator = s3.get_paginator('list_objects_v2')
-
-    for result in paginator.paginate(Bucket=bucket_name, Prefix=s3_prefix):
-        if 'Contents' in result:
-            for obj in result['Contents']:
-                s3_key = obj['Key']
-
-                # Compute the local file path
-                local_file = os.path.join(local_path, os.path.relpath(s3_key, s3_prefix))
-
-                # Ensure the directory for the local file exists
-                os.makedirs(os.path.dirname(local_file), exist_ok=True)
-
-                # Download the file from S3
-                print(f"Downloading {s3_key} to {local_file}")
-                s3.download_file(bucket_name, s3_key, local_file)
-
-
-st.title("TextVibe Analysis AI App")
-
-button = st.button("Download Model")
-if button:
-    with st.spinner("Downloading... Please wait!"):
-        download_dir(local_path, s3_prefix)
-
-
-text = st.text_area("Enter Your Review", "Type...")
-predict = st.button("Predict")
+import uvicorn
+import os
+from transformers import AutoImageProcessor
+import time
+model_ckpt = "google/vit-base-patch16-224-in21k"
+image_processor = AutoImageProcessor.from_pretrained(model_ckpt)
+app = FastAPI()
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-classifier = pipeline('text-classification', model='tinybert-sentiment-analysis', device=device)
-if predict:
-    with st.spinner("Predicting..."):
-        st.write("Working")
-        output = classifier(text)
-        label = output[0]['label']
-        score = output[0]['score']
-        # Fetch a GIF based on sentiment
-        if label == "positive":
-            gif_url = fetch_gif("happy positive anime")
-            st.subheader(f"Label: {label}")
-            st.subheader(f"Score: {score}")
-            if gif_url:
 
-                st.image(gif_url, caption="Positive vibes in a GIF!")
-        elif label == "negative":
-            st.subheader(f"Label: {label}")
-            st.subheader(f"Score: {score}")
-            gif_url = fetch_gif("sad anime")
-            if gif_url:
-                st.image(gif_url, caption="Negative vibes in a GIF!")
+######### Download ML Models from S3 #########
+force_download = True
+model_name = 'tinybert-sentiment-analysis/'
+local_path = 'ml-models/'+model_name
+if os.path.isdir(local_path) or force_download:
+    s3.download_dir(local_path, model_name)
+sentiment_model = pipeline('text-classification', model=local_path, 
+                           device=device)
+
+
+model_name = 'tinybert-disaster-tweet/'
+local_path = 'ml-models/'+model_name
+if os.path.isdir(local_path) or force_download:
+    s3.download_dir(local_path, model_name)
+twitter_model = pipeline('text-classification', model=local_path, 
+                           device=device)
+
+
+model_name = 'vit-human-pose-classification/'
+local_path = 'ml-models/'+model_name
+if os.path.isdir(local_path) or force_download:
+    s3.download_dir(local_path, model_name)
+pose_model = pipeline('image-classification', model=local_path, 
+                           device=device, image_processor=image_processor)
+######### API Endpoints #########
+
+
+@app.get("/")
+def read_root():
+    return "Shree Rama Jaya Rama Jaya Jaya Rama"
+
+@app.post("/api/v1/sentiment_analysis/")
+def sentiment_analysis(data: NLPDataInput):
+    start = time.time()
+    output = sentiment_model(data.text)
+    end = time.time()
+    prediction_time = int((end-start)*1000)
+
+    labels = [x['label'] for x in output]
+    scores = [x['score'] for x in output]
+
+    output = NLPDataOutput(model_name="tinybert-sentiment-analysis",
+                           text = data.text,
+                           labels=labels,
+                           scores = scores,
+                           prediction_time=prediction_time)
+
+    return output
+
+@app.post("/api/v1/disaster_classifier")
+def disaster_classifier(data: NLPDataInput):
+    start = time.time()
+    output = twitter_model(data.text)
+    end = time.time()
+    prediction_time = int((end-start)*1000)
+
+    labels = [x['label'] for x in output]
+    scores = [x['score'] for x in output]
+
+    output = NLPDataOutput(model_name="tinybert-disaster-tweet",
+                           text = data.text,
+                           labels=labels,
+                           scores = scores,
+                           prediction_time=prediction_time)
+
+    return output
+
+
+@app.post("/api/v1/pose_classifier")
+def pose_classifier(data: ImageDataInput):
+    start = time.time()
+    # print(data)
+    urls = [str(x) for x in data.url]
+    output = pose_model(urls)
+    end = time.time()
+    prediction_time = int((end-start)*1000)
+
+    labels = [x[0]['label'] for x in output]
+    scores = [x[0]['score'] for x in output]
+
+    output = ImageDataOutput(model_name="vit-human-pose-classification",
+                           url = data.url,
+                           labels=labels,
+                           scores = scores,
+                           prediction_time=prediction_time)
+    
+    return output
+if __name__ == "__main__":
+    uvicorn.run(app="app:app", port=8502, reload=True, host="0.0.0.0")
